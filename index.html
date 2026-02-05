@@ -375,11 +375,42 @@
                 max-height: 70vh;
             }
         }
+
+        #musicBtn {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(180deg, #f4e4bc 0%, #e8d4a8 100%);
+            border: 3px solid #8b7355;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow:
+                inset 0 -2px 0 #d4c498,
+                inset 0 2px 0 #fff8e8,
+                2px 2px 0 rgba(0,0,0,0.3);
+        }
+
+        #musicBtn:hover {
+            background: linear-gradient(180deg, #fff8e8 0%, #f4e4bc 100%);
+        }
+
+        #musicBtn.muted {
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <button id="musicBtn" onclick="toggleMusic()">🎵</button>
 
         <div id="ui">
             <div class="title" id="uiTitle">Fiori</div>
@@ -445,6 +476,120 @@
         const dpadEl = document.getElementById('dpad');
 
         const VIDEO_ID = "lzSg1EbqZVg";
+
+        // ============ MUSIC SYSTEM ============
+        let musicContext = null;
+        let musicPlaying = false;
+        let musicGain = null;
+        let musicInterval = null;
+
+        // Cozy Stardew Valley style melody notes (pentatonic scale)
+        const melodyNotes = [
+            262, 294, 330, 392, 440,  // C4, D4, E4, G4, A4
+            523, 587, 659, 784, 880   // C5, D5, E5, G5, A5
+        ];
+
+        const chordProgressions = [
+            [262, 330, 392],  // C major
+            [220, 277, 330],  // A minor
+            [349, 440, 523],  // F major
+            [392, 494, 587]   // G major
+        ];
+
+        function initMusic() {
+            if (musicContext) return;
+            musicContext = new (window.AudioContext || window.webkitAudioContext)();
+            musicGain = musicContext.createGain();
+            musicGain.connect(musicContext.destination);
+            musicGain.gain.value = 0.15;
+        }
+
+        function playNote(freq, duration, delay, type = 'sine') {
+            if (!musicContext || !musicPlaying) return;
+
+            const osc = musicContext.createOscillator();
+            const noteGain = musicContext.createGain();
+
+            osc.type = type;
+            osc.frequency.value = freq;
+
+            noteGain.gain.setValueAtTime(0, musicContext.currentTime + delay);
+            noteGain.gain.linearRampToValueAtTime(0.3, musicContext.currentTime + delay + 0.05);
+            noteGain.gain.linearRampToValueAtTime(0.1, musicContext.currentTime + delay + duration * 0.5);
+            noteGain.gain.linearRampToValueAtTime(0, musicContext.currentTime + delay + duration);
+
+            osc.connect(noteGain);
+            noteGain.connect(musicGain);
+
+            osc.start(musicContext.currentTime + delay);
+            osc.stop(musicContext.currentTime + delay + duration);
+        }
+
+        function playChord(notes, duration, delay) {
+            notes.forEach(note => {
+                playNote(note * 0.5, duration, delay, 'triangle'); // Bass
+            });
+        }
+
+        function playMelodyBar() {
+            if (!musicPlaying) return;
+
+            // Play a gentle chord
+            const chordIndex = Math.floor(Math.random() * chordProgressions.length);
+            playChord(chordProgressions[chordIndex], 2, 0);
+
+            // Play random melody notes
+            for (let i = 0; i < 4; i++) {
+                const noteIndex = Math.floor(Math.random() * melodyNotes.length);
+                const note = melodyNotes[noteIndex];
+                playNote(note, 0.4, i * 0.5, 'sine');
+            }
+        }
+
+        function startMusic() {
+            initMusic();
+            if (musicContext.state === 'suspended') {
+                musicContext.resume();
+            }
+            musicPlaying = true;
+            playMelodyBar();
+            musicInterval = setInterval(playMelodyBar, 2000);
+            document.getElementById('musicBtn').classList.remove('muted');
+            document.getElementById('musicBtn').textContent = '🎵';
+        }
+
+        function stopMusic() {
+            musicPlaying = false;
+            if (musicInterval) {
+                clearInterval(musicInterval);
+                musicInterval = null;
+            }
+            document.getElementById('musicBtn').classList.add('muted');
+            document.getElementById('musicBtn').textContent = '🔇';
+        }
+
+        function toggleMusic() {
+            if (musicPlaying) {
+                stopMusic();
+            } else {
+                startMusic();
+            }
+        }
+
+        // Auto-start music on first interaction
+        let musicStarted = false;
+        function tryStartMusic() {
+            if (!musicStarted && gamePhase === 'bedroom') {
+                musicStarted = true;
+                startMusic();
+            }
+        }
+
+        document.addEventListener('click', tryStartMusic, { once: true });
+        document.addEventListener('keydown', tryStartMusic, { once: true });
+        document.addEventListener('touchstart', tryStartMusic, { once: true });
+
+        // ============ END MUSIC SYSTEM ============
 
         // Game phases: 'bedroom' -> 'flowers' -> 'candles' -> 'video'
         let gamePhase = 'bedroom';
@@ -730,10 +875,29 @@
             ctx.fillRect(686, 336, 48, 24);
 
             // Lamp on table
+            const lampX = 710, lampY = 320;
+            const lampOn = bedroomState === 'walking' &&
+                Math.abs(player.x - lampX) < 80 && Math.abs(player.y - lampY) < 80;
+
+            // Lamp glow when on
+            if (lampOn) {
+                ctx.fillStyle = 'rgba(255, 230, 150, 0.4)';
+                ctx.fillRect(660, 250, 100, 100);
+                ctx.fillStyle = 'rgba(255, 200, 100, 0.2)';
+                ctx.fillRect(620, 220, 180, 160);
+            }
+
+            // Lamp base
             ctx.fillStyle = '#daa520';
             ctx.fillRect(704, 306, 12, 24);
-            ctx.fillStyle = '#ffe4b5';
+            // Lamp shade
+            ctx.fillStyle = lampOn ? '#fff8dc' : '#ffe4b5';
             ctx.fillRect(692, 282, 36, 28);
+            // Light bulb glow when on
+            if (lampOn) {
+                ctx.fillStyle = '#fffacd';
+                ctx.fillRect(696, 286, 28, 20);
+            }
 
             // Picture frame
             ctx.fillStyle = '#5c4a3d';
@@ -1140,6 +1304,8 @@
             createSlots(10);
             instructionsEl.style.display = 'block';
             dpadEl.classList.add('active');
+            // Stop bedroom music
+            stopMusic();
         }
 
         function showVideo() {
