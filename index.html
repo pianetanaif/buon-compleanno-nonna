@@ -2,13 +2,16 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Il Giardino della Nonna 🌻</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         body {
@@ -18,6 +21,8 @@
             align-items: center;
             min-height: 100vh;
             font-family: 'Courier New', monospace;
+            overflow: hidden;
+            touch-action: none;
         }
 
         #gameContainer {
@@ -27,12 +32,16 @@
             box-shadow:
                 0 0 0 4px #3d3224,
                 0 8px 24px rgba(0,0,0,0.5);
+            max-width: 100vw;
+            max-height: 70vh;
         }
 
         canvas {
             display: block;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
+            max-width: 100%;
+            max-height: 70vh;
         }
 
         #ui {
@@ -60,11 +69,13 @@
         #ui .slots {
             display: flex;
             gap: 4px;
+            flex-wrap: wrap;
+            max-width: 100px;
         }
 
         .slot {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             background: #d4c498;
             border: 2px solid #a08060;
             border-radius: 2px;
@@ -79,6 +90,47 @@
             background: #ffd700;
             border-color: #ffa500;
         }
+
+        /* Mobile D-Pad */
+        #dpad {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 140px;
+            z-index: 100;
+        }
+
+        .dpad-btn {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(180deg, rgba(244,228,188,0.9) 0%, rgba(232,212,168,0.9) 100%);
+            border: 3px solid #8b7355;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            color: #5c4a3d;
+            box-shadow:
+                inset 0 -2px 0 #d4c498,
+                inset 0 2px 0 #fff8e8,
+                2px 2px 0 rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+
+        .dpad-btn:active {
+            background: linear-gradient(180deg, rgba(232,212,168,0.95) 0%, rgba(212,196,152,0.95) 100%);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        #dpad-up { top: 0; left: 50%; transform: translateX(-50%); }
+        #dpad-down { bottom: 0; left: 50%; transform: translateX(-50%); }
+        #dpad-left { left: 0; top: 50%; transform: translateY(-50%); }
+        #dpad-right { right: 0; top: 50%; transform: translateY(-50%); }
 
         #phaseMessage {
             position: absolute;
@@ -97,6 +149,7 @@
             display: none;
             text-align: center;
             z-index: 10;
+            max-width: 90%;
         }
 
         #phaseMessage h2 {
@@ -117,9 +170,9 @@
             background: linear-gradient(180deg, #7ec850 0%, #5a9a32 100%);
             border: 3px solid #4a7a28;
             border-radius: 4px;
-            padding: 8px 20px;
+            padding: 12px 24px;
             font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             color: #fff;
             cursor: pointer;
@@ -127,13 +180,8 @@
             box-shadow: 0 3px 0 #3a6a18;
         }
 
-        #phaseMessage button:hover {
+        #phaseMessage button:hover, #phaseMessage button:active {
             background: linear-gradient(180deg, #8ed860 0%, #6aaa42 100%);
-        }
-
-        #phaseMessage button:active {
-            box-shadow: 0 1px 0 #3a6a18;
-            transform: translateY(2px);
         }
 
         #videoContainer {
@@ -149,19 +197,23 @@
             flex-direction: column;
             z-index: 20;
             border-radius: 4px;
+            padding: 20px;
         }
 
         #videoContainer h2 {
             color: #f4e4bc;
-            font-size: 20px;
-            margin-bottom: 20px;
+            font-size: 18px;
+            margin-bottom: 16px;
             text-shadow: 2px 2px 0 #d87093;
+            text-align: center;
         }
 
         #videoContainer iframe {
             border: 6px solid #8b7355;
             border-radius: 4px;
             box-shadow: 0 0 40px rgba(255,182,193,0.3);
+            max-width: 100%;
+            max-height: 60vh;
         }
 
         #instructions {
@@ -173,6 +225,21 @@
             border-radius: 4px;
             font-size: 11px;
             color: #f4e4bc;
+        }
+
+        @media (pointer: coarse), (max-width: 768px) {
+            #dpad {
+                display: block;
+            }
+            #instructions {
+                display: none;
+            }
+            #gameContainer {
+                max-height: 60vh;
+            }
+            canvas {
+                max-height: 60vh;
+            }
         }
     </style>
 </head>
@@ -195,7 +262,6 @@
 
         <div id="videoContainer">
             <h2>🎂 Buon Compleanno Nonna! 🎂</h2>
-            <!-- REPLACE THIS VIDEO ID WITH YOUR YOUTUBE VIDEO ID -->
             <iframe
                 id="youtubeVideo"
                 width="560"
@@ -206,6 +272,14 @@
                 allowfullscreen>
             </iframe>
         </div>
+    </div>
+
+    <!-- Mobile D-Pad -->
+    <div id="dpad">
+        <div class="dpad-btn" id="dpad-up">↑</div>
+        <div class="dpad-btn" id="dpad-down">↓</div>
+        <div class="dpad-btn" id="dpad-left">←</div>
+        <div class="dpad-btn" id="dpad-right">→</div>
     </div>
 
     <script>
@@ -219,14 +293,9 @@
         const slotsContainer = document.getElementById('slots');
         const uiTitle = document.getElementById('uiTitle');
 
-        // ============================================
-        // REPLACE WITH YOUR YOUTUBE VIDEO ID
-        // Example: if your video URL is https://www.youtube.com/watch?v=ABC123
-        // then the VIDEO_ID is "ABC123"
-        // ============================================
-        const VIDEO_ID = "dQw4w9WgXcQ"; // <-- CHANGE THIS!
+        const VIDEO_ID = "lzSg1EbqZVg";
 
-        let gamePhase = 'flowers'; // 'flowers', 'transition', 'candles', 'video'
+        let gamePhase = 'flowers';
         let totalItems = 10;
         let collected = 0;
         let gamePaused = false;
@@ -248,7 +317,6 @@
             fences.push({x: x, y: 440});
         }
 
-        // Flowers
         const flowers = [
             {x: 180, y: 120}, {x: 380, y: 140}, {x: 480, y: 180},
             {x: 140, y: 200}, {x: 280, y: 220}, {x: 420, y: 260},
@@ -261,7 +329,6 @@
             bobOffset: Math.random() * Math.PI * 2
         }));
 
-        // Candles (around a cake in the center)
         const candles = [];
         const cakeX = 320, cakeY = 240;
         for (let i = 0; i < 8; i++) {
@@ -286,9 +353,41 @@
 
         createSlots(10);
 
+        // Keyboard controls
         const keys = {};
         window.addEventListener('keydown', (e) => keys[e.key] = true);
         window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+        // Mobile D-Pad controls
+        const dpadState = { up: false, down: false, left: false, right: false };
+
+        function setupDpadButton(id, direction) {
+            const btn = document.getElementById(id);
+
+            const activate = (e) => {
+                e.preventDefault();
+                dpadState[direction] = true;
+            };
+            const deactivate = (e) => {
+                e.preventDefault();
+                dpadState[direction] = false;
+            };
+
+            btn.addEventListener('touchstart', activate, { passive: false });
+            btn.addEventListener('touchend', deactivate, { passive: false });
+            btn.addEventListener('touchcancel', deactivate, { passive: false });
+            btn.addEventListener('mousedown', activate);
+            btn.addEventListener('mouseup', deactivate);
+            btn.addEventListener('mouseleave', deactivate);
+        }
+
+        setupDpadButton('dpad-up', 'up');
+        setupDpadButton('dpad-down', 'down');
+        setupDpadButton('dpad-left', 'left');
+        setupDpadButton('dpad-right', 'right');
+
+        // Prevent scrolling on touch
+        document.body.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
 
         function drawGrass() {
             ctx.fillStyle = gamePhase === 'candles' ? '#5a4a6a' : '#7ec850';
@@ -301,7 +400,6 @@
                 ctx.fillRect(x, y, 4, 4);
             }
 
-            // Path
             ctx.fillStyle = gamePhase === 'candles' ? '#8a7a6a' : '#c4a66a';
             ctx.fillRect(300, 350, 80, 130);
             ctx.fillRect(280, 420, 120, 60);
@@ -366,25 +464,21 @@
         }
 
         function drawCake() {
-            // Cake base
             ctx.fillStyle = '#8b4513';
             ctx.fillRect(cakeX - 40, cakeY + 10, 80, 40);
             ctx.fillStyle = '#a0522d';
             ctx.fillRect(cakeX - 35, cakeY + 15, 70, 30);
 
-            // Frosting
             ctx.fillStyle = '#ffb6c1';
             ctx.fillRect(cakeX - 40, cakeY, 80, 15);
             ctx.fillStyle = '#ff69b4';
             ctx.fillRect(cakeX - 35, cakeY + 5, 70, 5);
 
-            // Top tier
             ctx.fillStyle = '#deb887';
             ctx.fillRect(cakeX - 25, cakeY - 20, 50, 25);
             ctx.fillStyle = '#ffe4b5';
             ctx.fillRect(cakeX - 20, cakeY - 15, 40, 15);
 
-            // Cherry on top
             ctx.fillStyle = '#dc143c';
             ctx.fillRect(cakeX - 4, cakeY - 28, 8, 8);
             ctx.fillStyle = '#228b22';
@@ -396,17 +490,14 @@
 
             const flicker = Math.sin(time / 100 + candle.flickerOffset) * 1;
 
-            // Candle body
             ctx.fillStyle = '#fff8dc';
             ctx.fillRect(candle.x - 3, candle.y, 6, 16);
             ctx.fillStyle = '#fffacd';
             ctx.fillRect(candle.x - 2, candle.y + 2, 4, 12);
 
-            // Wick
             ctx.fillStyle = '#4a4a4a';
             ctx.fillRect(candle.x - 1, candle.y - 4, 2, 6);
 
-            // Flame
             ctx.fillStyle = '#ffd700';
             ctx.fillRect(candle.x - 3, candle.y - 10 + flicker, 6, 6);
             ctx.fillStyle = '#ff8c00';
@@ -414,7 +505,6 @@
             ctx.fillStyle = '#ff4500';
             ctx.fillRect(candle.x - 1, candle.y - 6 + flicker, 2, 2);
 
-            // Glow
             ctx.fillStyle = 'rgba(255, 200, 100, 0.3)';
             ctx.fillRect(candle.x - 8, candle.y - 14 + flicker, 16, 12);
         }
@@ -492,6 +582,7 @@
             const iframe = document.getElementById('youtubeVideo');
             iframe.src = `https://www.youtube.com/embed/${VIDEO_ID}?autoplay=1`;
             videoContainer.style.display = 'flex';
+            document.getElementById('dpad').style.display = 'none';
         }
 
         function update() {
@@ -499,19 +590,20 @@
 
             player.moving = false;
 
-            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+            // Keyboard + D-Pad combined
+            if (keys['ArrowUp'] || keys['w'] || keys['W'] || dpadState.up) {
                 player.y = Math.max(50, player.y - player.speed);
                 player.moving = true;
             }
-            if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+            if (keys['ArrowDown'] || keys['s'] || keys['S'] || dpadState.down) {
                 player.y = Math.min(420, player.y + player.speed);
                 player.moving = true;
             }
-            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+            if (keys['ArrowLeft'] || keys['a'] || keys['A'] || dpadState.left) {
                 player.x = Math.max(40, player.x - player.speed);
                 player.moving = true;
             }
-            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+            if (keys['ArrowRight'] || keys['d'] || keys['D'] || dpadState.right) {
                 player.x = Math.min(canvas.width - 40, player.x + player.speed);
                 player.moving = true;
             }
