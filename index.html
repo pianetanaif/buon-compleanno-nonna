@@ -1234,6 +1234,57 @@
             }
         }
 
+        function drawBouquet(x, y, count, time) {
+            if (count === 0) return;
+
+            const flowerColors = [
+                {petal: '#ff6b8a', center: '#ffdb58'},
+                {petal: '#ffd700', center: '#ff8c00'},
+                {petal: '#da70d6', center: '#ffb6c1'},
+                {petal: '#87ceeb', center: '#fff8dc'}
+            ];
+
+            // Stems (green bundle)
+            ctx.fillStyle = '#228b22';
+            ctx.fillRect(x - 2, y, 4, 12);
+
+            // Wrapper/ribbon
+            ctx.fillStyle = '#ffb6c1';
+            ctx.fillRect(x - 4, y + 6, 8, 4);
+
+            // Draw collected flowers in bouquet
+            const positions = [
+                {dx: 0, dy: -8},
+                {dx: -6, dy: -6},
+                {dx: 6, dy: -6},
+                {dx: -4, dy: -12},
+                {dx: 4, dy: -12},
+                {dx: 0, dy: -14},
+                {dx: -8, dy: -10},
+                {dx: 8, dy: -10},
+                {dx: -2, dy: -16},
+                {dx: 2, dy: -16}
+            ];
+
+            for (let i = 0; i < Math.min(count, 10); i++) {
+                const flower = flowers[i];
+                if (flower && flower.collected) {
+                    const c = flowerColors[flower.type];
+                    const pos = positions[i];
+                    const bob = Math.sin(time / 300 + i) * 1;
+
+                    // Mini flower in bouquet
+                    ctx.fillStyle = c.petal;
+                    ctx.fillRect(x + pos.dx - 2, y + pos.dy + bob - 1, 2, 2);
+                    ctx.fillRect(x + pos.dx + 1, y + pos.dy + bob - 1, 2, 2);
+                    ctx.fillRect(x + pos.dx - 1, y + pos.dy + bob - 3, 2, 2);
+                    ctx.fillRect(x + pos.dx - 1, y + pos.dy + bob + 1, 2, 2);
+                    ctx.fillStyle = c.center;
+                    ctx.fillRect(x + pos.dx - 1, y + pos.dy + bob - 1, 2, 2);
+                }
+            }
+        }
+
         function drawPlayer(time) {
             const bounce = player.moving ? Math.sin(time / 80) * 2 : 0;
             const y = player.y + bounce;
@@ -1264,6 +1315,11 @@
             ctx.fillStyle = '#ffd5c8';
             ctx.fillRect(player.x - 12, y + 2, 4, 8);
             ctx.fillRect(player.x + 8, y + 2, 4, 8);
+
+            // Draw bouquet if collecting flowers
+            if (gamePhase === 'flowers' && collected > 0) {
+                drawBouquet(player.x + 14, y + 4, collected, time);
+            }
         }
 
         function showPhaseMessage(title, text, buttonText) {
