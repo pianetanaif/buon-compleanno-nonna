@@ -57,12 +57,12 @@
             margin-bottom: 4px;
         }
 
-        #ui .flowers {
+        #ui .slots {
             display: flex;
             gap: 4px;
         }
 
-        .flower-slot {
+        .slot {
             width: 16px;
             height: 16px;
             background: #d4c498;
@@ -70,12 +70,17 @@
             border-radius: 2px;
         }
 
-        .flower-slot.collected {
+        .slot.collected {
             background: #ffb6c1;
             border-color: #d87093;
         }
 
-        #finalMessage {
+        .slot.candle-slot.collected {
+            background: #ffd700;
+            border-color: #ffa500;
+        }
+
+        #phaseMessage {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -83,7 +88,7 @@
             background: linear-gradient(180deg, #f4e4bc 0%, #e8d4a8 100%);
             border: 6px solid #8b7355;
             border-radius: 8px;
-            padding: 32px 40px;
+            padding: 24px 32px;
             box-shadow:
                 inset 0 -3px 0 #d4c498,
                 inset 0 3px 0 #fff8e8,
@@ -91,27 +96,72 @@
                 0 0 60px rgba(0,0,0,0.5);
             display: none;
             text-align: center;
-            max-width: 380px;
             z-index: 10;
         }
 
-        #finalMessage h2 {
-            font-size: 18px;
+        #phaseMessage h2 {
+            font-size: 16px;
             color: #d87093;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             text-shadow: 1px 1px 0 #fff;
         }
 
-        #finalMessage p {
+        #phaseMessage p {
             font-size: 13px;
             color: #5c4a3d;
-            line-height: 1.8;
-            margin-bottom: 8px;
+            line-height: 1.6;
         }
 
-        #finalMessage .heart {
-            font-size: 24px;
-            margin-top: 12px;
+        #phaseMessage button {
+            margin-top: 16px;
+            background: linear-gradient(180deg, #7ec850 0%, #5a9a32 100%);
+            border: 3px solid #4a7a28;
+            border-radius: 4px;
+            padding: 8px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            cursor: pointer;
+            text-shadow: 1px 1px 0 #3a6a18;
+            box-shadow: 0 3px 0 #3a6a18;
+        }
+
+        #phaseMessage button:hover {
+            background: linear-gradient(180deg, #8ed860 0%, #6aaa42 100%);
+        }
+
+        #phaseMessage button:active {
+            box-shadow: 0 1px 0 #3a6a18;
+            transform: translateY(2px);
+        }
+
+        #videoContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 20;
+            border-radius: 4px;
+        }
+
+        #videoContainer h2 {
+            color: #f4e4bc;
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #d87093;
+        }
+
+        #videoContainer iframe {
+            border: 6px solid #8b7355;
+            border-radius: 4px;
+            box-shadow: 0 0 40px rgba(255,182,193,0.3);
         }
 
         #instructions {
@@ -131,119 +181,149 @@
         <canvas id="gameCanvas" width="640" height="480"></canvas>
 
         <div id="ui">
-            <div class="title">Fiori</div>
-            <div class="flowers" id="flowerSlots"></div>
+            <div class="title" id="uiTitle">Fiori</div>
+            <div class="slots" id="slots"></div>
         </div>
 
         <div id="instructions">WASD o ↑↓←→</div>
 
-        <div id="finalMessage">
-            <h2>~ Il Giardino è Fiorito ~</h2>
-            <p>Carissima Nonna,</p>
-            <p>ti vogliamo un bene infinito e siamo grati per tutto l'amore che ci dedichi ogni giorno.</p>
-            <p>Buon Compleanno!</p>
-            <div class="heart">❤️</div>
+        <div id="phaseMessage">
+            <h2 id="phaseTitle"></h2>
+            <p id="phaseText"></p>
+            <button id="phaseButton" onclick="nextPhase()">Continua</button>
+        </div>
+
+        <div id="videoContainer">
+            <h2>🎂 Buon Compleanno Nonna! 🎂</h2>
+            <!-- REPLACE THIS VIDEO ID WITH YOUR YOUTUBE VIDEO ID -->
+            <iframe
+                id="youtubeVideo"
+                width="560"
+                height="315"
+                src=""
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+            </iframe>
         </div>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const finalMessage = document.getElementById('finalMessage');
-        const flowerSlotsContainer = document.getElementById('flowerSlots');
+        const phaseMessage = document.getElementById('phaseMessage');
+        const phaseTitle = document.getElementById('phaseTitle');
+        const phaseText = document.getElementById('phaseText');
+        const phaseButton = document.getElementById('phaseButton');
+        const videoContainer = document.getElementById('videoContainer');
+        const slotsContainer = document.getElementById('slots');
+        const uiTitle = document.getElementById('uiTitle');
 
-        const totalFlowers = 10;
-        let flowersCollected = 0;
+        // ============================================
+        // REPLACE WITH YOUR YOUTUBE VIDEO ID
+        // Example: if your video URL is https://www.youtube.com/watch?v=ABC123
+        // then the VIDEO_ID is "ABC123"
+        // ============================================
+        const VIDEO_ID = "dQw4w9WgXcQ"; // <-- CHANGE THIS!
 
-        // Create UI flower slots
-        for (let i = 0; i < totalFlowers; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'flower-slot';
-            slot.id = `slot-${i}`;
-            flowerSlotsContainer.appendChild(slot);
-        }
+        let gamePhase = 'flowers'; // 'flowers', 'transition', 'candles', 'video'
+        let totalItems = 10;
+        let collected = 0;
+        let gamePaused = false;
 
         const player = {
             x: 320,
             y: 380,
             speed: 3,
-            frame: 0,
-            direction: 0, // 0=down, 1=left, 2=right, 3=up
             moving: false
         };
 
-        // Garden layout
-        const flowers = [];
         const trees = [
             {x: 60, y: 80}, {x: 560, y: 100}, {x: 100, y: 300},
             {x: 520, y: 280}, {x: 300, y: 60}
         ];
-        const fences = [];
 
-        // Create flower positions (avoiding edges and trees)
-        const flowerPositions = [
+        const fences = [];
+        for (let x = 20; x < canvas.width - 20; x += 32) {
+            fences.push({x: x, y: 440});
+        }
+
+        // Flowers
+        const flowers = [
             {x: 180, y: 120}, {x: 380, y: 140}, {x: 480, y: 180},
             {x: 140, y: 200}, {x: 280, y: 220}, {x: 420, y: 260},
             {x: 200, y: 320}, {x: 340, y: 340}, {x: 460, y: 360},
             {x: 260, y: 400}
-        ];
+        ].map((pos, i) => ({
+            ...pos,
+            collected: false,
+            type: i % 4,
+            bobOffset: Math.random() * Math.PI * 2
+        }));
 
-        flowerPositions.forEach((pos, i) => {
-            flowers.push({
-                x: pos.x,
-                y: pos.y,
+        // Candles (around a cake in the center)
+        const candles = [];
+        const cakeX = 320, cakeY = 240;
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            candles.push({
+                x: cakeX + Math.cos(angle) * 120,
+                y: cakeY + Math.sin(angle) * 100,
                 collected: false,
-                type: i % 4,
-                bobOffset: Math.random() * Math.PI * 2
+                flickerOffset: Math.random() * Math.PI * 2
             });
-        });
-
-        // Create fence
-        for (let x = 20; x < canvas.width - 20; x += 32) {
-            fences.push({x: x, y: 440});
         }
+
+        function createSlots(count, isCandle = false) {
+            slotsContainer.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot' + (isCandle ? ' candle-slot' : '');
+                slot.id = `slot-${i}`;
+                slotsContainer.appendChild(slot);
+            }
+        }
+
+        createSlots(10);
 
         const keys = {};
         window.addEventListener('keydown', (e) => keys[e.key] = true);
         window.addEventListener('keyup', (e) => keys[e.key] = false);
 
         function drawGrass() {
-            // Base grass
-            ctx.fillStyle = '#7ec850';
+            ctx.fillStyle = gamePhase === 'candles' ? '#5a4a6a' : '#7ec850';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Grass texture
-            ctx.fillStyle = '#6ab844';
+            ctx.fillStyle = gamePhase === 'candles' ? '#4a3a5a' : '#6ab844';
             for (let i = 0; i < 200; i++) {
                 const x = (i * 97) % canvas.width;
                 const y = (i * 53) % canvas.height;
                 ctx.fillRect(x, y, 4, 4);
             }
 
-            // Dirt path
-            ctx.fillStyle = '#c4a66a';
+            // Path
+            ctx.fillStyle = gamePhase === 'candles' ? '#8a7a6a' : '#c4a66a';
             ctx.fillRect(300, 350, 80, 130);
             ctx.fillRect(280, 420, 120, 60);
 
-            ctx.fillStyle = '#b89658';
+            ctx.fillStyle = gamePhase === 'candles' ? '#7a6a5a' : '#b89658';
             for (let i = 0; i < 20; i++) {
                 ctx.fillRect(305 + (i * 13) % 70, 360 + (i * 17) % 100, 3, 3);
             }
         }
 
         function drawTree(tree) {
-            // Trunk
             ctx.fillStyle = '#8b6914';
             ctx.fillRect(tree.x - 8, tree.y + 20, 16, 24);
             ctx.fillStyle = '#725510';
             ctx.fillRect(tree.x - 8, tree.y + 20, 4, 24);
 
-            // Leaves layers
-            ctx.fillStyle = '#2d8a2d';
+            const leafColor = gamePhase === 'candles' ? ['#1a5a1a', '#2a6a2a', '#3a7a3a'] : ['#2d8a2d', '#3ca83c', '#4bc44b'];
+            ctx.fillStyle = leafColor[0];
             ctx.fillRect(tree.x - 28, tree.y, 56, 28);
-            ctx.fillStyle = '#3ca83c';
+            ctx.fillStyle = leafColor[1];
             ctx.fillRect(tree.x - 24, tree.y - 12, 48, 20);
-            ctx.fillStyle = '#4bc44b';
+            ctx.fillStyle = leafColor[2];
             ctx.fillRect(tree.x - 16, tree.y - 20, 32, 16);
         }
 
@@ -252,7 +332,6 @@
             ctx.fillRect(fence.x, fence.y, 28, 4);
             ctx.fillRect(fence.x + 4, fence.y - 16, 4, 20);
             ctx.fillRect(fence.x + 20, fence.y - 16, 4, 20);
-
             ctx.fillStyle = '#a08040';
             ctx.fillRect(fence.x + 4, fence.y - 16, 4, 4);
             ctx.fillRect(fence.x + 20, fence.y - 16, 4, 4);
@@ -264,115 +343,207 @@
             const bob = Math.sin(time / 500 + flower.bobOffset) * 2;
             const y = flower.y + bob;
 
-            // Stem
             ctx.fillStyle = '#3d8c40';
             ctx.fillRect(flower.x - 1, y + 6, 3, 10);
-
-            // Leaf
             ctx.fillStyle = '#4aa84d';
             ctx.fillRect(flower.x + 2, y + 8, 4, 3);
 
             const colors = [
-                {petal: '#ff6b8a', center: '#ffdb58'}, // Pink
-                {petal: '#ffd700', center: '#ff8c00'}, // Yellow
-                {petal: '#da70d6', center: '#ffb6c1'}, // Purple
-                {petal: '#87ceeb', center: '#fff8dc'}  // Blue
+                {petal: '#ff6b8a', center: '#ffdb58'},
+                {petal: '#ffd700', center: '#ff8c00'},
+                {petal: '#da70d6', center: '#ffb6c1'},
+                {petal: '#87ceeb', center: '#fff8dc'}
             ];
             const c = colors[flower.type];
 
-            // Petals
             ctx.fillStyle = c.petal;
             ctx.fillRect(flower.x - 6, y - 2, 5, 5);
             ctx.fillRect(flower.x + 2, y - 2, 5, 5);
             ctx.fillRect(flower.x - 2, y - 6, 5, 5);
             ctx.fillRect(flower.x - 2, y + 2, 5, 5);
-
-            // Center
             ctx.fillStyle = c.center;
             ctx.fillRect(flower.x - 2, y - 2, 5, 5);
+        }
+
+        function drawCake() {
+            // Cake base
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(cakeX - 40, cakeY + 10, 80, 40);
+            ctx.fillStyle = '#a0522d';
+            ctx.fillRect(cakeX - 35, cakeY + 15, 70, 30);
+
+            // Frosting
+            ctx.fillStyle = '#ffb6c1';
+            ctx.fillRect(cakeX - 40, cakeY, 80, 15);
+            ctx.fillStyle = '#ff69b4';
+            ctx.fillRect(cakeX - 35, cakeY + 5, 70, 5);
+
+            // Top tier
+            ctx.fillStyle = '#deb887';
+            ctx.fillRect(cakeX - 25, cakeY - 20, 50, 25);
+            ctx.fillStyle = '#ffe4b5';
+            ctx.fillRect(cakeX - 20, cakeY - 15, 40, 15);
+
+            // Cherry on top
+            ctx.fillStyle = '#dc143c';
+            ctx.fillRect(cakeX - 4, cakeY - 28, 8, 8);
+            ctx.fillStyle = '#228b22';
+            ctx.fillRect(cakeX - 2, cakeY - 32, 4, 4);
+        }
+
+        function drawCandle(candle, time) {
+            if (candle.collected) return;
+
+            const flicker = Math.sin(time / 100 + candle.flickerOffset) * 1;
+
+            // Candle body
+            ctx.fillStyle = '#fff8dc';
+            ctx.fillRect(candle.x - 3, candle.y, 6, 16);
+            ctx.fillStyle = '#fffacd';
+            ctx.fillRect(candle.x - 2, candle.y + 2, 4, 12);
+
+            // Wick
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillRect(candle.x - 1, candle.y - 4, 2, 6);
+
+            // Flame
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(candle.x - 3, candle.y - 10 + flicker, 6, 6);
+            ctx.fillStyle = '#ff8c00';
+            ctx.fillRect(candle.x - 2, candle.y - 8 + flicker, 4, 4);
+            ctx.fillStyle = '#ff4500';
+            ctx.fillRect(candle.x - 1, candle.y - 6 + flicker, 2, 2);
+
+            // Glow
+            ctx.fillStyle = 'rgba(255, 200, 100, 0.3)';
+            ctx.fillRect(candle.x - 8, candle.y - 14 + flicker, 16, 12);
+        }
+
+        function drawStars(time) {
+            if (gamePhase !== 'candles') return;
+            ctx.fillStyle = '#ffffcc';
+            for (let i = 0; i < 30; i++) {
+                const x = (i * 73) % canvas.width;
+                const y = (i * 47) % 100 + 20;
+                const twinkle = Math.sin(time / 300 + i) > 0.5 ? 3 : 2;
+                ctx.fillRect(x, y, twinkle, twinkle);
+            }
         }
 
         function drawPlayer(time) {
             const bounce = player.moving ? Math.sin(time / 80) * 2 : 0;
             const y = player.y + bounce;
 
-            // Shadow
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
             ctx.fillRect(player.x - 10, player.y + 14, 20, 6);
 
-            // Body (dress)
             ctx.fillStyle = '#e86a92';
             ctx.fillRect(player.x - 8, y, 16, 14);
-
-            // Dress detail
             ctx.fillStyle = '#d45a82';
             ctx.fillRect(player.x - 8, y + 10, 16, 4);
 
-            // Head
             ctx.fillStyle = '#ffd5c8';
             ctx.fillRect(player.x - 6, y - 10, 12, 12);
 
-            // Hair (grey curls for nonna)
             ctx.fillStyle = '#c0c0c0';
             ctx.fillRect(player.x - 7, y - 12, 14, 6);
             ctx.fillRect(player.x - 8, y - 10, 4, 8);
             ctx.fillRect(player.x + 4, y - 10, 4, 8);
 
-            // Eyes
             ctx.fillStyle = '#4a4a4a';
             ctx.fillRect(player.x - 4, y - 6, 2, 3);
             ctx.fillRect(player.x + 2, y - 6, 2, 3);
 
-            // Smile
             ctx.fillStyle = '#d45a82';
             ctx.fillRect(player.x - 2, y - 2, 4, 2);
 
-            // Arms
             ctx.fillStyle = '#ffd5c8';
             ctx.fillRect(player.x - 12, y + 2, 4, 8);
             ctx.fillRect(player.x + 8, y + 2, 4, 8);
         }
 
+        function showPhaseMessage(title, text, buttonText) {
+            phaseTitle.textContent = title;
+            phaseText.textContent = text;
+            phaseButton.textContent = buttonText;
+            phaseMessage.style.display = 'block';
+            gamePaused = true;
+        }
+
+        function nextPhase() {
+            phaseMessage.style.display = 'none';
+            gamePaused = false;
+
+            if (gamePhase === 'flowers') {
+                gamePhase = 'candles';
+                collected = 0;
+                totalItems = 8;
+                uiTitle.textContent = 'Candele';
+                createSlots(8, true);
+                player.x = 320;
+                player.y = 400;
+            } else if (gamePhase === 'candles') {
+                gamePhase = 'video';
+                showVideo();
+            }
+        }
+
+        function showVideo() {
+            const iframe = document.getElementById('youtubeVideo');
+            iframe.src = `https://www.youtube.com/embed/${VIDEO_ID}?autoplay=1`;
+            videoContainer.style.display = 'flex';
+        }
+
         function update() {
+            if (gamePaused || gamePhase === 'video') return;
+
             player.moving = false;
 
             if (keys['ArrowUp'] || keys['w'] || keys['W']) {
                 player.y = Math.max(50, player.y - player.speed);
-                player.direction = 3;
                 player.moving = true;
             }
             if (keys['ArrowDown'] || keys['s'] || keys['S']) {
-                player.y = Math.min(420, player.y - player.speed + player.speed);
                 player.y = Math.min(420, player.y + player.speed);
-                player.direction = 0;
                 player.moving = true;
             }
             if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
                 player.x = Math.max(40, player.x - player.speed);
-                player.direction = 1;
                 player.moving = true;
             }
             if (keys['ArrowRight'] || keys['d'] || keys['D']) {
                 player.x = Math.min(canvas.width - 40, player.x + player.speed);
-                player.direction = 2;
                 player.moving = true;
             }
 
-            flowers.forEach((flower, index) => {
-                if (!flower.collected) {
-                    const dx = player.x - flower.x;
-                    const dy = player.y - flower.y;
+            const items = gamePhase === 'flowers' ? flowers : candles;
+            items.forEach((item, index) => {
+                if (!item.collected) {
+                    const dx = player.x - item.x;
+                    const dy = player.y - item.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
 
                     if (distance < 20) {
-                        flower.collected = true;
-                        flowersCollected++;
+                        item.collected = true;
+                        collected++;
                         document.getElementById(`slot-${index}`).classList.add('collected');
 
-                        if (flowersCollected === totalFlowers) {
+                        if (collected === totalItems) {
                             setTimeout(() => {
-                                finalMessage.style.display = 'block';
-                            }, 600);
+                                if (gamePhase === 'flowers') {
+                                    showPhaseMessage(
+                                        '~ Fiori Raccolti! ~',
+                                        'Bellissimo! Ora accendi le candeline sulla torta!',
+                                        'Continua'
+                                    );
+                                } else {
+                                    showPhaseMessage(
+                                        '~ Buon Compleanno! ~',
+                                        'Hai acceso tutte le candeline! Ora c\'è una sorpresa per te...',
+                                        'Guarda il Video'
+                                    );
+                                }
+                            }, 400);
                         }
                     }
                 }
@@ -381,17 +552,22 @@
 
         function draw(time) {
             drawGrass();
+            drawStars(time);
 
-            // Draw trees behind player
             trees.forEach(tree => {
                 if (tree.y < player.y) drawTree(tree);
             });
 
-            flowers.forEach(f => drawFlower(f, time));
+            if (gamePhase === 'flowers') {
+                flowers.forEach(f => drawFlower(f, time));
+            } else if (gamePhase === 'candles') {
+                drawCake();
+                candles.forEach(c => drawCandle(c, time));
+            }
+
             fences.forEach(drawFence);
             drawPlayer(time);
 
-            // Draw trees in front of player
             trees.forEach(tree => {
                 if (tree.y >= player.y) drawTree(tree);
             });
