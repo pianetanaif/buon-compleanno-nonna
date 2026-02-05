@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buon Compleanno Nonna!</title>
+    <title>Buon Compleanno Nonna! 🌸</title>
     <style>
         * {
             margin: 0;
@@ -12,224 +12,290 @@
         }
 
         body {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
-            font-family: 'Georgia', serif;
-            overflow-x: hidden;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 100%);
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            padding: 20px;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
         }
 
-        .container {
-            text-align: center;
-            max-width: 800px;
-            animation: fadeIn 1.5s ease-in;
+        #gameContainer {
+            background: #f0f8ff;
+            border: 8px solid #fff;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            position: relative;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        h1 {
-            font-size: 3.5rem;
-            color: #d63384;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            animation: bounce 1s ease infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .cake {
-            font-size: 8rem;
-            margin: 30px 0;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .message {
-            background: rgba(255,255,255,0.9);
-            border-radius: 20px;
-            padding: 40px;
-            margin: 30px 0;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-        }
-
-        .message p {
-            font-size: 1.4rem;
-            line-height: 1.8;
-            color: #555;
-            margin-bottom: 15px;
-        }
-
-        .message .firma {
-            font-style: italic;
-            color: #d63384;
-            font-size: 1.2rem;
-            margin-top: 25px;
-        }
-
-        .hearts {
-            font-size: 2rem;
-            margin: 20px 0;
-        }
-
-        .confetti {
-            position: fixed;
-            width: 15px;
-            height: 15px;
-            top: -20px;
-            animation: fall linear infinite;
-        }
-
-        @keyframes fall {
-            to {
-                transform: translateY(100vh) rotate(720deg);
-            }
-        }
-
-        .balloon {
-            position: fixed;
-            font-size: 3rem;
-            bottom: -100px;
-            animation: float 8s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0) rotate(-5deg); }
-            50% { transform: translateY(-100vh) rotate(5deg); }
-            100% { transform: translateY(-200vh) rotate(-5deg); }
-        }
-
-        button {
-            background: linear-gradient(135deg, #d63384, #ff6b9d);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 1.2rem;
-            border-radius: 50px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: transform 0.3s, box-shadow 0.3s;
-            box-shadow: 0 5px 20px rgba(214, 51, 132, 0.4);
-        }
-
-        button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 8px 30px rgba(214, 51, 132, 0.6);
-        }
-
-        .surprise {
-            display: none;
-            margin-top: 30px;
-            font-size: 4rem;
-            animation: tada 1s ease;
-        }
-
-        @keyframes tada {
-            0% { transform: scale(1); }
-            10%, 20% { transform: scale(0.9) rotate(-3deg); }
-            30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
-            40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
-            100% { transform: scale(1) rotate(0); }
-        }
-
-        .show {
+        canvas {
             display: block;
+            background: #90EE90;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        #message {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff69b4;
+            text-shadow: 2px 2px 0 #fff;
+            border: 4px solid #ff69b4;
+            z-index: 10;
+            text-align: center;
+        }
+
+        #score {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            border: 3px solid #ffb6c1;
+            z-index: 10;
+        }
+
+        #finalMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.98);
+            padding: 40px;
+            border-radius: 16px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff1493;
+            text-shadow: 2px 2px 0 #ffb6c1;
+            border: 6px solid #ff69b4;
+            z-index: 20;
+            display: none;
+            text-align: center;
+            line-height: 1.8;
+            max-width: 500px;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+            border: 2px solid #ddd;
+            z-index: 10;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Buon Compleanno Nonna!</h1>
-
-        <div class="cake">🎂</div>
-
-        <div class="message">
-            <p>Carissima Nonna,</p>
-            <p>
-                Oggi festeggiamo te, il cuore della nostra famiglia!
-                Ti vogliamo un bene infinito e siamo immensamente grati
-                per tutto l'amore che ci dedichi ogni giorno.
-            </p>
-            <p>
-                I tuoi abbracci, i tuoi sorrisi e la tua cucina
-                riempiono le nostre vite di gioia e calore.
-                Sei unica e speciale, e non potremmo
-                chiedere una nonna migliore!
-            </p>
-            <p class="hearts">💝 💖 💝</p>
-            <p class="firma">Con tutto il nostro amore,<br>I tuoi nipoti</p>
-        </div>
-
-        <button onclick="showSurprise()">Clicca per una sorpresa! 🎁</button>
-
-        <div class="surprise" id="surprise">
-            🎉🥳🎊🎈🎁🎀
-            <p style="font-size: 1.5rem; margin-top: 20px;">Tanti auguri a te! 🎵</p>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="640" height="480"></canvas>
+        <div id="message">Buon Compleanno Nonna! 🎂</div>
+        <div id="score">Fiori: 0/10</div>
+        <div id="instructions">Usa le frecce per muoverti</div>
+        <div id="finalMessage">
+            Hai raccolto tutti i fiori! 💐<br><br>
+            Carissima Nonna,<br>
+            ti vogliamo un bene infinito<br>
+            e siamo grati per tutto l'amore<br>
+            che ci dedichi ogni giorno.<br><br>
+            Tanti auguri! ❤️
         </div>
     </div>
 
     <script>
-        // Create confetti
-        const colors = ['#ff6b9d', '#ffd93d', '#6bcb77', '#4d96ff', '#ff6b6b', '#c86bfa'];
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('score');
+        const finalMessage = document.getElementById('finalMessage');
 
-        function createConfetti() {
-            for (let i = 0; i < 50; i++) {
-                setTimeout(() => {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    confetti.style.left = Math.random() * 100 + 'vw';
-                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-                    confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
-                    confetti.style.animationDelay = Math.random() * 2 + 's';
-                    document.body.appendChild(confetti);
+        // Game state
+        const player = {
+            x: 320,
+            y: 400,
+            size: 24,
+            speed: 4,
+            direction: 'down'
+        };
 
-                    setTimeout(() => confetti.remove(), 7000);
-                }, i * 100);
-            }
-        }
+        const flowers = [];
+        const totalFlowers = 10;
+        let flowersCollected = 0;
 
-        // Create balloons
-        function createBalloons() {
-            const balloons = ['🎈', '🎈', '🎈', '🎈', '🎈'];
-            balloons.forEach((balloon, i) => {
-                const el = document.createElement('div');
-                el.className = 'balloon';
-                el.textContent = balloon;
-                el.style.left = (10 + i * 20) + 'vw';
-                el.style.animationDelay = (i * 1.5) + 's';
-                el.style.color = colors[i % colors.length];
-                document.body.appendChild(el);
+        // Create flowers at random positions
+        for (let i = 0; i < totalFlowers; i++) {
+            flowers.push({
+                x: Math.random() * (canvas.width - 40) + 20,
+                y: Math.random() * (canvas.height - 100) + 40,
+                size: 16,
+                collected: false,
+                type: Math.floor(Math.random() * 3) // 3 flower types
             });
         }
 
-        function showSurprise() {
-            document.getElementById('surprise').classList.add('show');
-            createConfetti();
+        // Input handling
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
 
-            // Play a little animation
-            const button = document.querySelector('button');
-            button.textContent = '🎉 Auguri! 🎉';
+        // Draw pixel character (nonna!)
+        function drawPlayer() {
+            // Dress
+            ctx.fillStyle = '#ff69b4';
+            ctx.fillRect(player.x - 10, player.y - 6, 20, 18);
+            // Head
+            ctx.fillStyle = '#ffb6c1';
+            ctx.fillRect(player.x - 6, player.y - 16, 12, 10);
+            // Hair (grey for nonna)
+            ctx.fillStyle = '#c0c0c0';
+            ctx.fillRect(player.x - 7, player.y - 18, 14, 4);
+            // Eyes
+            ctx.fillStyle = '#000';
+            ctx.fillRect(player.x - 4, player.y - 12, 2, 2);
+            ctx.fillRect(player.x + 2, player.y - 12, 2, 2);
+            // Smile
+            ctx.fillRect(player.x - 2, player.y - 8, 4, 1);
+            // Arms
+            ctx.fillStyle = '#ffb6c1';
+            ctx.fillRect(player.x - 14, player.y - 2, 4, 8);
+            ctx.fillRect(player.x + 10, player.y - 2, 4, 8);
         }
 
-        // Start balloons on load
-        createBalloons();
+        // Draw flowers
+        function drawFlower(flower) {
+            if (flower.collected) return;
 
-        // Auto confetti after 2 seconds
-        setTimeout(createConfetti, 2000);
+            const colors = [
+                ['#ff69b4', '#ff1493'], // Pink
+                ['#9370db', '#8a2be2'], // Purple
+                ['#ffd700', '#ffb800']  // Yellow
+            ];
+
+            const [color1, color2] = colors[flower.type];
+
+            // Stem
+            ctx.fillStyle = '#228b22';
+            ctx.fillRect(flower.x - 2, flower.y, 4, 12);
+
+            // Petals
+            ctx.fillStyle = color1;
+            ctx.fillRect(flower.x - 6, flower.y - 6, 4, 4);
+            ctx.fillRect(flower.x + 2, flower.y - 6, 4, 4);
+            ctx.fillRect(flower.x - 6, flower.y + 2, 4, 4);
+            ctx.fillRect(flower.x + 2, flower.y + 2, 4, 4);
+
+            // Center
+            ctx.fillStyle = color2;
+            ctx.fillRect(flower.x - 2, flower.y - 2, 4, 4);
+        }
+
+        // Draw grass
+        function drawGrass() {
+            ctx.fillStyle = '#90EE90';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add some darker grass patches
+            ctx.fillStyle = '#7CCD7C';
+            for (let i = 0; i < 50; i++) {
+                const x = (i * 137) % canvas.width;
+                const y = (i * 89) % canvas.height;
+                ctx.fillRect(x, y, 8, 4);
+            }
+        }
+
+        // Draw clouds
+        function drawClouds() {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.fillRect(100, 40, 60, 20);
+            ctx.fillRect(120, 30, 40, 20);
+
+            ctx.fillRect(400, 60, 60, 20);
+            ctx.fillRect(420, 50, 40, 20);
+
+            ctx.fillRect(250, 80, 50, 20);
+            ctx.fillRect(265, 70, 30, 20);
+        }
+
+        // Update game
+        function update() {
+            // Move player
+            if (keys['ArrowUp'] || keys['w']) {
+                player.y = Math.max(player.size, player.y - player.speed);
+                player.direction = 'up';
+            }
+            if (keys['ArrowDown'] || keys['s']) {
+                player.y = Math.min(canvas.height - player.size, player.y + player.speed);
+                player.direction = 'down';
+            }
+            if (keys['ArrowLeft'] || keys['a']) {
+                player.x = Math.max(player.size, player.x - player.speed);
+                player.direction = 'left';
+            }
+            if (keys['ArrowRight'] || keys['d']) {
+                player.x = Math.min(canvas.width - player.size, player.x + player.speed);
+                player.direction = 'right';
+            }
+
+            // Check flower collection
+            flowers.forEach(flower => {
+                if (!flower.collected) {
+                    const dx = player.x - flower.x;
+                    const dy = player.y - flower.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 20) {
+                        flower.collected = true;
+                        flowersCollected++;
+                        scoreDisplay.textContent = `Fiori: ${flowersCollected}/${totalFlowers}`;
+
+                        if (flowersCollected === totalFlowers) {
+                            setTimeout(() => {
+                                finalMessage.style.display = 'block';
+                            }, 500);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Draw game
+        function draw() {
+            drawGrass();
+            drawClouds();
+
+            flowers.forEach(drawFlower);
+            drawPlayer();
+        }
+
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
     </script>
 </body>
 </html>
