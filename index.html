@@ -741,19 +741,19 @@
             ctx.fillStyle = '#90EE90';
             ctx.fillRect(607, 67, 56, 46);
 
-            // Door
-            ctx.fillStyle = '#6b4423';
-            ctx.fillRect(50, 220, 80, 170);
-            ctx.fillStyle = '#8b5a2b';
-            ctx.fillRect(58, 228, 64, 154);
+            // Door (on the right side, dark green)
+            ctx.fillStyle = '#2d5a3d';
+            ctx.fillRect(700, 220, 80, 170);
+            ctx.fillStyle = '#3d7a4d';
+            ctx.fillRect(708, 228, 64, 154);
             ctx.fillStyle = '#daa520';
-            ctx.fillRect(108, 310, 10, 10);
+            ctx.fillRect(718, 310, 10, 10);
 
             // Draw player in bed or walking
             if (bedroomState === 'sleeping' || bedroomState === 'waking') {
-                drawPlayerInBed(550, 310, time, bedroomState === 'sleeping');
+                drawPlayerInBed(550, 255, time, bedroomState === 'sleeping');
             } else if (bedroomState === 'awake') {
-                drawPlayerSitting(550, 330, time);
+                drawPlayerSitting(550, 300, time);
             } else if (bedroomState === 'walking' || bedroomState === 'exiting') {
                 drawPlayerBedroom(player.x, player.y, time);
             }
@@ -1183,8 +1183,8 @@
                         player.moving = true;
                     }
 
-                    // Check if at door
-                    if (player.x < 130 && player.y > 300 && player.y < 400) {
+                    // Check if at door (right side of room)
+                    if (player.x > 680 && player.y > 300 && player.y < 400) {
                         bedroomState = 'exiting';
                     }
                 } else if (bedroomState === 'exiting') {
