@@ -56,6 +56,7 @@
                 inset 0 -2px 0 #d4c498,
                 inset 0 2px 0 #fff8e8,
                 2px 2px 0 rgba(0,0,0,0.3);
+            display: none;
         }
 
         #ui .title {
@@ -278,14 +279,43 @@
             border-radius: 4px;
             font-size: 11px;
             color: #f4e4bc;
+            display: none;
+        }
+
+        #introText {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, #f4e4bc 0%, #e8d4a8 100%);
+            border: 4px solid #8b7355;
+            border-radius: 8px;
+            padding: 16px 24px;
+            max-width: 80%;
+            text-align: center;
+            font-size: 14px;
+            color: #5c4a3d;
+            line-height: 1.6;
+            box-shadow:
+                inset 0 -2px 0 #d4c498,
+                inset 0 2px 0 #fff8e8,
+                3px 3px 0 rgba(0,0,0,0.3);
+            display: none;
+            z-index: 10;
+        }
+
+        #introText .continue {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #a08060;
         }
 
         @media (pointer: coarse), (max-width: 768px) {
-            #dpad {
+            #dpad.active {
                 display: block;
             }
             #instructions {
-                display: none;
+                display: none !important;
             }
             #gameContainer {
                 max-height: 60vh;
@@ -306,6 +336,11 @@
         </div>
 
         <div id="instructions">WASD o ↑↓←→</div>
+
+        <div id="introText">
+            <span id="introTextContent"></span>
+            <div class="continue">Premi SPAZIO o tocca per continuare</div>
+        </div>
 
         <div id="blowHint">💨 Soffia sulla candela!</div>
 
@@ -352,10 +387,16 @@
         const uiTitle = document.getElementById('uiTitle');
         const blowBtn = document.getElementById('blowBtn');
         const blowHint = document.getElementById('blowHint');
+        const uiElement = document.getElementById('ui');
+        const introTextBox = document.getElementById('introText');
+        const introTextContent = document.getElementById('introTextContent');
+        const instructionsEl = document.getElementById('instructions');
+        const dpadEl = document.getElementById('dpad');
 
         const VIDEO_ID = "lzSg1EbqZVg";
 
-        let gamePhase = 'flowers';
+        // Game phases: 'bedroom' -> 'flowers' -> 'candles' -> 'video'
+        let gamePhase = 'bedroom';
         let totalItems = 10;
         let collected = 0;
         let gamePaused = false;
@@ -364,9 +405,23 @@
         let audioContext = null;
         let analyser = null;
 
+        // Bedroom intro state
+        let bedroomState = 'sleeping'; // 'sleeping', 'waking', 'awake', 'walking', 'exiting'
+        let introStep = 0;
+        let wakeTimer = 0;
+        let canProgress = false;
+        let fadeOut = 0;
+
+        const introTexts = [
+            "Zzz... Zzz...",
+            "*sbadiglio* Che bella giornata...",
+            "Oh! Ma oggi è il mio compleanno!",
+            "Vado a vedere il giardino! 🌻"
+        ];
+
         const player = {
-            x: 320,
-            y: 380,
+            x: 420,
+            y: 280,
             speed: 3,
             moving: false
         };
@@ -417,18 +472,26 @@
             }
         }
 
-        createSlots(10);
-
         // Keyboard controls
         const keys = {};
         window.addEventListener('keydown', (e) => {
             keys[e.key] = true;
-            // Space to blow
-            if (e.code === 'Space' && nearCandle && gamePhase === 'candles') {
-                blowOutCandle(nearCandle);
+            if (e.code === 'Space') {
+                if (gamePhase === 'bedroom' && canProgress) {
+                    progressIntro();
+                } else if (nearCandle && gamePhase === 'candles') {
+                    blowOutCandle(nearCandle);
+                }
             }
         });
         window.addEventListener('keyup', (e) => keys[e.key] = false);
+
+        // Touch to progress intro
+        canvas.addEventListener('click', () => {
+            if (gamePhase === 'bedroom' && canProgress) {
+                progressIntro();
+            }
+        });
 
         // Mobile D-Pad controls
         const dpadState = { up: false, down: false, left: false, right: false };
@@ -482,14 +545,12 @@
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(dataArray);
 
-            // Calculate average volume
             let sum = 0;
             for (let i = 0; i < dataArray.length; i++) {
                 sum += dataArray[i];
             }
             const average = sum / dataArray.length;
 
-            // Detect blow (loud low-frequency sound)
             if (average > 50 && nearCandle && gamePhase === 'candles') {
                 blowOutCandle(nearCandle);
             }
@@ -502,7 +563,6 @@
 
             candle.blowingOut = true;
 
-            // Animate flame going out
             const blowInterval = setInterval(() => {
                 candle.flameSize -= 0.15;
                 if (candle.flameSize <= 0) {
@@ -527,6 +587,294 @@
         }
 
         document.body.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+        function progressIntro() {
+            if (!canProgress) return;
+            canProgress = false;
+
+            introStep++;
+
+            if (introStep < introTexts.length) {
+                if (introStep === 1) {
+                    bedroomState = 'waking';
+                } else if (introStep === 2) {
+                    bedroomState = 'awake';
+                } else if (introStep === 3) {
+                    bedroomState = 'walking';
+                    introTextBox.style.display = 'none';
+                }
+                if (introStep < 3) {
+                    setTimeout(() => {
+                        introTextContent.textContent = introTexts[introStep];
+                        canProgress = true;
+                    }, 500);
+                }
+            }
+        }
+
+        // ==================== DRAWING FUNCTIONS ====================
+
+        function drawBedroom(time) {
+            // Floor
+            ctx.fillStyle = '#8b7355';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Floor boards
+            ctx.fillStyle = '#7a6348';
+            for (let y = 0; y < canvas.height; y += 40) {
+                ctx.fillRect(0, y, canvas.width, 4);
+            }
+            for (let x = 0; x < canvas.width; x += 80) {
+                ctx.fillRect(x, 0, 4, canvas.height);
+            }
+
+            // Walls
+            ctx.fillStyle = '#d4b896';
+            ctx.fillRect(0, 0, canvas.width, 180);
+
+            // Wall pattern
+            ctx.fillStyle = '#c4a886';
+            for (let x = 0; x < canvas.width; x += 60) {
+                ctx.fillRect(x, 0, 4, 180);
+            }
+
+            // Baseboard
+            ctx.fillStyle = '#5c4a3d';
+            ctx.fillRect(0, 176, canvas.width, 8);
+
+            // Window
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(280, 40, 80, 100);
+            ctx.fillStyle = '#5c4a3d';
+            ctx.fillRect(276, 36, 88, 8);
+            ctx.fillRect(276, 140, 88, 8);
+            ctx.fillRect(276, 36, 8, 112);
+            ctx.fillRect(356, 36, 8, 112);
+            ctx.fillRect(316, 36, 8, 112);
+            ctx.fillRect(276, 84, 88, 8);
+
+            // Curtains
+            ctx.fillStyle = '#ffb6c1';
+            ctx.fillRect(260, 30, 20, 124);
+            ctx.fillRect(360, 30, 20, 124);
+
+            // Rug
+            ctx.fillStyle = '#c94c4c';
+            ctx.fillRect(200, 280, 160, 100);
+            ctx.fillStyle = '#a33c3c';
+            ctx.fillRect(210, 290, 140, 80);
+            ctx.fillStyle = '#d4a574';
+            ctx.fillRect(220, 300, 120, 60);
+
+            // Fireplace
+            drawFireplace(80, 120, time);
+
+            // Bed
+            drawBed(420, 200, time);
+
+            // Bedside table
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(520, 260, 50, 60);
+            ctx.fillStyle = '#8b5a2b';
+            ctx.fillRect(525, 265, 40, 20);
+
+            // Lamp on table
+            ctx.fillStyle = '#daa520';
+            ctx.fillRect(540, 240, 10, 20);
+            ctx.fillStyle = '#ffe4b5';
+            ctx.fillRect(530, 220, 30, 24);
+
+            // Picture frame
+            ctx.fillStyle = '#5c4a3d';
+            ctx.fillRect(480, 50, 60, 50);
+            ctx.fillStyle = '#90EE90';
+            ctx.fillRect(486, 56, 48, 38);
+
+            // Door
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(50, 180, 70, 140);
+            ctx.fillStyle = '#8b5a2b';
+            ctx.fillRect(56, 186, 58, 128);
+            ctx.fillStyle = '#daa520';
+            ctx.fillRect(100, 250, 8, 8);
+
+            // Draw player in bed or walking
+            if (bedroomState === 'sleeping' || bedroomState === 'waking') {
+                drawPlayerInBed(420, 240, time, bedroomState === 'sleeping');
+            } else if (bedroomState === 'awake') {
+                drawPlayerSitting(420, 260, time);
+            } else if (bedroomState === 'walking' || bedroomState === 'exiting') {
+                drawPlayerBedroom(player.x, player.y, time);
+            }
+
+            // Fade out
+            if (fadeOut > 0) {
+                ctx.fillStyle = `rgba(0, 0, 0, ${fadeOut})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function drawFireplace(x, y, time) {
+            // Fireplace structure
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(x, y, 100, 120);
+
+            // Inner dark area
+            ctx.fillStyle = '#2a1a0a';
+            ctx.fillRect(x + 15, y + 40, 70, 80);
+
+            // Mantel
+            ctx.fillStyle = '#a0522d';
+            ctx.fillRect(x - 10, y - 10, 120, 20);
+            ctx.fillRect(x - 5, y + 10, 110, 10);
+
+            // Fire
+            const flicker1 = Math.sin(time / 100) * 3;
+            const flicker2 = Math.cos(time / 80) * 2;
+
+            // Glow
+            ctx.fillStyle = 'rgba(255, 100, 0, 0.3)';
+            ctx.fillRect(x + 10, y + 50, 80, 70);
+
+            // Flames
+            ctx.fillStyle = '#ff4500';
+            ctx.fillRect(x + 30 + flicker1, y + 60, 15, 40);
+            ctx.fillRect(x + 50 + flicker2, y + 55, 12, 45);
+            ctx.fillRect(x + 65 + flicker1, y + 65, 10, 35);
+
+            ctx.fillStyle = '#ff8c00';
+            ctx.fillRect(x + 32 + flicker2, y + 70, 11, 25);
+            ctx.fillRect(x + 52 + flicker1, y + 65, 8, 30);
+
+            ctx.fillStyle = '#ffd700';
+            ctx.fillRect(x + 35 + flicker1, y + 80, 6, 12);
+            ctx.fillRect(x + 54 + flicker2, y + 75, 5, 15);
+
+            // Logs
+            ctx.fillStyle = '#4a2a0a';
+            ctx.fillRect(x + 25, y + 100, 50, 12);
+            ctx.fillRect(x + 30, y + 95, 40, 10);
+        }
+
+        function drawBed(x, y, time) {
+            // Bed frame
+            ctx.fillStyle = '#6b4423';
+            ctx.fillRect(x - 60, y, 120, 100);
+
+            // Headboard
+            ctx.fillStyle = '#8b5a2b';
+            ctx.fillRect(x - 60, y - 40, 120, 50);
+            ctx.fillStyle = '#a0522d';
+            ctx.fillRect(x - 50, y - 30, 100, 30);
+
+            // Mattress
+            ctx.fillStyle = '#f5f5dc';
+            ctx.fillRect(x - 55, y + 5, 110, 90);
+
+            // Blanket
+            ctx.fillStyle = '#ffb6c1';
+            ctx.fillRect(x - 55, y + 30, 110, 60);
+            ctx.fillStyle = '#ff69b4';
+            ctx.fillRect(x - 55, y + 35, 110, 10);
+
+            // Pillow
+            ctx.fillStyle = '#fffaf0';
+            ctx.fillRect(x - 45, y + 10, 90, 25);
+            ctx.fillStyle = '#fff8dc';
+            ctx.fillRect(x - 40, y + 15, 80, 15);
+        }
+
+        function drawPlayerInBed(x, y, time, sleeping) {
+            // Head on pillow
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(x - 10, y + 15, 20, 16);
+
+            // Hair
+            ctx.fillStyle = '#c0c0c0';
+            ctx.fillRect(x - 12, y + 12, 24, 8);
+
+            if (sleeping) {
+                // Closed eyes
+                ctx.fillStyle = '#4a4a4a';
+                ctx.fillRect(x - 6, y + 22, 4, 1);
+                ctx.fillRect(x + 2, y + 22, 4, 1);
+
+                // Zzz
+                const zzz = Math.sin(time / 500) * 5;
+                ctx.fillStyle = '#a0a0a0';
+                ctx.font = '12px Courier New';
+                ctx.fillText('z', x + 20 + zzz, y + 10);
+                ctx.fillText('z', x + 30 + zzz, y + 5);
+                ctx.fillText('Z', x + 42 + zzz, y);
+            } else {
+                // Opening eyes
+                ctx.fillStyle = '#4a4a4a';
+                ctx.fillRect(x - 6, y + 20, 3, 4);
+                ctx.fillRect(x + 3, y + 20, 3, 4);
+            }
+        }
+
+        function drawPlayerSitting(x, y, time) {
+            // Body sitting up
+            ctx.fillStyle = '#e86a92';
+            ctx.fillRect(x - 8, y, 16, 20);
+
+            // Head
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(x - 6, y - 14, 12, 14);
+
+            // Hair
+            ctx.fillStyle = '#c0c0c0';
+            ctx.fillRect(x - 7, y - 16, 14, 6);
+            ctx.fillRect(x - 8, y - 14, 4, 10);
+            ctx.fillRect(x + 4, y - 14, 4, 10);
+
+            // Eyes
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillRect(x - 4, y - 8, 2, 3);
+            ctx.fillRect(x + 2, y - 8, 2, 3);
+
+            // Happy mouth
+            ctx.fillStyle = '#d45a82';
+            ctx.fillRect(x - 2, y - 3, 4, 2);
+
+            // Arms
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(x - 12, y + 4, 4, 8);
+            ctx.fillRect(x + 8, y + 4, 4, 8);
+        }
+
+        function drawPlayerBedroom(x, y, time) {
+            const bounce = player.moving ? Math.sin(time / 80) * 2 : 0;
+            const py = y + bounce;
+
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(x - 10, y + 14, 20, 6);
+
+            ctx.fillStyle = '#e86a92';
+            ctx.fillRect(x - 8, py, 16, 14);
+            ctx.fillStyle = '#d45a82';
+            ctx.fillRect(x - 8, py + 10, 16, 4);
+
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(x - 6, py - 10, 12, 12);
+
+            ctx.fillStyle = '#c0c0c0';
+            ctx.fillRect(x - 7, py - 12, 14, 6);
+            ctx.fillRect(x - 8, py - 10, 4, 8);
+            ctx.fillRect(x + 4, py - 10, 4, 8);
+
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillRect(x - 4, py - 6, 2, 3);
+            ctx.fillRect(x + 2, py - 6, 2, 3);
+
+            ctx.fillStyle = '#d45a82';
+            ctx.fillRect(x - 2, py - 2, 4, 2);
+
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(x - 12, py + 2, 4, 8);
+            ctx.fillRect(x + 8, py + 2, 4, 8);
+        }
 
         function drawGrass() {
             ctx.fillStyle = gamePhase === 'candles' ? '#5a4a6a' : '#7ec850';
@@ -626,12 +974,10 @@
 
         function drawCandle(candle, time) {
             if (candle.collected) {
-                // Draw blown out candle (just the stick)
                 ctx.fillStyle = '#fff8dc';
                 ctx.fillRect(candle.x - 3, candle.y, 6, 16);
                 ctx.fillStyle = '#fffacd';
                 ctx.fillRect(candle.x - 2, candle.y + 2, 4, 12);
-                // Smoke
                 ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
                 const smokeY = candle.y - 10 - ((time / 100) % 20);
                 ctx.fillRect(candle.x - 2, smokeY, 4, 4);
@@ -641,18 +987,15 @@
             const flicker = Math.sin(time / 100 + candle.flickerOffset) * 1;
             const size = candle.flameSize;
 
-            // Candle body
             ctx.fillStyle = '#fff8dc';
             ctx.fillRect(candle.x - 3, candle.y, 6, 16);
             ctx.fillStyle = '#fffacd';
             ctx.fillRect(candle.x - 2, candle.y + 2, 4, 12);
 
-            // Wick
             ctx.fillStyle = '#4a4a4a';
             ctx.fillRect(candle.x - 1, candle.y - 4, 2, 6);
 
             if (size > 0) {
-                // Flame with size
                 ctx.fillStyle = '#ffd700';
                 ctx.fillRect(candle.x - 3 * size, candle.y - 10 * size + flicker, 6 * size, 6 * size);
                 ctx.fillStyle = '#ff8c00';
@@ -660,7 +1003,6 @@
                 ctx.fillStyle = '#ff4500';
                 ctx.fillRect(candle.x - 1 * size, candle.y - 6 * size + flicker, 2 * size, 2 * size);
 
-                // Glow
                 ctx.fillStyle = `rgba(255, 200, 100, ${0.3 * size})`;
                 ctx.fillRect(candle.x - 8, candle.y - 14 + flicker, 16, 12);
             }
@@ -731,7 +1073,6 @@
                 createSlots(8, true);
                 player.x = 320;
                 player.y = 400;
-                // Try to init microphone for blow detection
                 initMicrophone();
             } else if (gamePhase === 'candles') {
                 gamePhase = 'video';
@@ -739,16 +1080,70 @@
             }
         }
 
+        function startGarden() {
+            gamePhase = 'flowers';
+            player.x = 320;
+            player.y = 380;
+            collected = 0;
+            uiElement.style.display = 'block';
+            createSlots(10);
+            instructionsEl.style.display = 'block';
+            dpadEl.classList.add('active');
+        }
+
         function showVideo() {
             const iframe = document.getElementById('youtubeVideo');
             iframe.src = `https://www.youtube.com/embed/${VIDEO_ID}?autoplay=1`;
             videoContainer.style.display = 'flex';
-            document.getElementById('dpad').style.display = 'none';
+            dpadEl.style.display = 'none';
             blowBtn.style.display = 'none';
         }
 
-        function update() {
+        function update(time) {
             if (gamePaused || gamePhase === 'video') return;
+
+            if (gamePhase === 'bedroom') {
+                // Bedroom intro logic
+                if (bedroomState === 'sleeping' && introStep === 0) {
+                    wakeTimer++;
+                    if (wakeTimer > 60) {
+                        introTextContent.textContent = introTexts[0];
+                        introTextBox.style.display = 'block';
+                        canProgress = true;
+                    }
+                } else if (bedroomState === 'walking') {
+                    // Player can move in bedroom
+                    player.moving = false;
+
+                    if (keys['ArrowUp'] || keys['w'] || keys['W'] || dpadState.up) {
+                        player.y = Math.max(200, player.y - player.speed);
+                        player.moving = true;
+                    }
+                    if (keys['ArrowDown'] || keys['s'] || keys['S'] || dpadState.down) {
+                        player.y = Math.min(350, player.y + player.speed);
+                        player.moving = true;
+                    }
+                    if (keys['ArrowLeft'] || keys['a'] || keys['A'] || dpadState.left) {
+                        player.x = Math.max(40, player.x - player.speed);
+                        player.moving = true;
+                    }
+                    if (keys['ArrowRight'] || keys['d'] || keys['D'] || dpadState.right) {
+                        player.x = Math.min(canvas.width - 40, player.x + player.speed);
+                        player.moving = true;
+                    }
+
+                    // Check if at door
+                    if (player.x < 120 && player.y > 240 && player.y < 320) {
+                        bedroomState = 'exiting';
+                    }
+                } else if (bedroomState === 'exiting') {
+                    fadeOut += 0.02;
+                    if (fadeOut >= 1) {
+                        startGarden();
+                    }
+                }
+                return;
+            }
 
             player.moving = false;
 
@@ -794,7 +1189,6 @@
                     }
                 });
             } else if (gamePhase === 'candles') {
-                // Check if near any candle
                 nearCandle = null;
                 candles.forEach((candle) => {
                     if (!candle.collected && !candle.blowingOut) {
@@ -808,7 +1202,6 @@
                     }
                 });
 
-                // Show/hide blow button and hint
                 const isMobile = window.matchMedia("(pointer: coarse)").matches;
                 if (nearCandle) {
                     blowHint.style.display = 'block';
@@ -821,6 +1214,11 @@
         }
 
         function draw(time) {
+            if (gamePhase === 'bedroom') {
+                drawBedroom(time);
+                return;
+            }
+
             drawGrass();
             drawStars(time);
 
@@ -844,9 +1242,15 @@
         }
 
         function gameLoop(time) {
-            update();
+            update(time);
             draw(time);
             requestAnimationFrame(gameLoop);
+        }
+
+        // Show d-pad in bedroom walking phase
+        const checkMobile = window.matchMedia("(pointer: coarse)").matches;
+        if (checkMobile) {
+            dpadEl.classList.add('active');
         }
 
         gameLoop(0);
