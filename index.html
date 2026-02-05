@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buon Compleanno</title>
+    <title>Il Giardino della Nonna 🌻</title>
     <style>
         * {
             margin: 0;
@@ -12,32 +12,67 @@
         }
 
         body {
-            background: #f5f3ef;
+            background: #2d2a1e;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            font-family: 'Helvetica Neue', sans-serif;
-            font-weight: 300;
+            font-family: 'Courier New', monospace;
         }
 
         #gameContainer {
             position: relative;
+            border: 8px solid #5c4a3d;
+            border-radius: 4px;
+            box-shadow:
+                0 0 0 4px #3d3224,
+                0 8px 24px rgba(0,0,0,0.5);
         }
 
         canvas {
             display: block;
-            background: #f5f3ef;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
         }
 
-        #score {
+        #ui {
             position: absolute;
-            top: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 13px;
-            color: #a8a29e;
-            letter-spacing: 0.1em;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(180deg, #f4e4bc 0%, #e8d4a8 100%);
+            border: 4px solid #8b7355;
+            border-radius: 4px;
+            padding: 8px 14px;
+            box-shadow:
+                inset 0 -2px 0 #d4c498,
+                inset 0 2px 0 #fff8e8,
+                2px 2px 0 rgba(0,0,0,0.3);
+        }
+
+        #ui .title {
+            font-size: 10px;
+            color: #5c4a3d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        #ui .flowers {
+            display: flex;
+            gap: 4px;
+        }
+
+        .flower-slot {
+            width: 16px;
+            height: 16px;
+            background: #d4c498;
+            border: 2px solid #a08060;
+            border-radius: 2px;
+        }
+
+        .flower-slot.collected {
+            background: #ffb6c1;
+            border-color: #d87093;
         }
 
         #finalMessage {
@@ -45,146 +80,330 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: #f5f3ef;
-            padding: 60px;
-            font-size: 15px;
-            color: #78716c;
+            background: linear-gradient(180deg, #f4e4bc 0%, #e8d4a8 100%);
+            border: 6px solid #8b7355;
+            border-radius: 8px;
+            padding: 32px 40px;
+            box-shadow:
+                inset 0 -3px 0 #d4c498,
+                inset 0 3px 0 #fff8e8,
+                4px 4px 0 rgba(0,0,0,0.4),
+                0 0 60px rgba(0,0,0,0.5);
             display: none;
             text-align: center;
-            line-height: 2.2;
-            letter-spacing: 0.05em;
+            max-width: 380px;
+            z-index: 10;
+        }
+
+        #finalMessage h2 {
+            font-size: 18px;
+            color: #d87093;
+            margin-bottom: 16px;
+            text-shadow: 1px 1px 0 #fff;
+        }
+
+        #finalMessage p {
+            font-size: 13px;
+            color: #5c4a3d;
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+
+        #finalMessage .heart {
+            font-size: 24px;
+            margin-top: 12px;
         }
 
         #instructions {
             position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 12px;
+            left: 12px;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
+            border-radius: 4px;
             font-size: 11px;
-            color: #d6d3d1;
-            letter-spacing: 0.15em;
+            color: #f4e4bc;
         }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas" width="640" height="480"></canvas>
-        <div id="score">0 · 10</div>
-        <div id="instructions">↑ ↓ ← →</div>
+
+        <div id="ui">
+            <div class="title">Fiori</div>
+            <div class="flowers" id="flowerSlots"></div>
+        </div>
+
+        <div id="instructions">WASD o ↑↓←→</div>
+
         <div id="finalMessage">
-            Carissima Nonna<br><br>
-            ti vogliamo bene<br>
-            e siamo grati per l'amore<br>
-            che ci dedichi ogni giorno<br><br>
-            ·
+            <h2>~ Il Giardino è Fiorito ~</h2>
+            <p>Carissima Nonna,</p>
+            <p>ti vogliamo un bene infinito e siamo grati per tutto l'amore che ci dedichi ogni giorno.</p>
+            <p>Buon Compleanno!</p>
+            <div class="heart">❤️</div>
         </div>
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreDisplay = document.getElementById('score');
         const finalMessage = document.getElementById('finalMessage');
+        const flowerSlotsContainer = document.getElementById('flowerSlots');
 
-        const player = {
-            x: 320,
-            y: 400,
-            speed: 3
-        };
-
-        const flowers = [];
         const totalFlowers = 10;
         let flowersCollected = 0;
 
-        // Gentle, spread out placement
+        // Create UI flower slots
         for (let i = 0; i < totalFlowers; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'flower-slot';
+            slot.id = `slot-${i}`;
+            flowerSlotsContainer.appendChild(slot);
+        }
+
+        const player = {
+            x: 320,
+            y: 380,
+            speed: 3,
+            frame: 0,
+            direction: 0, // 0=down, 1=left, 2=right, 3=up
+            moving: false
+        };
+
+        // Garden layout
+        const flowers = [];
+        const trees = [
+            {x: 60, y: 80}, {x: 560, y: 100}, {x: 100, y: 300},
+            {x: 520, y: 280}, {x: 300, y: 60}
+        ];
+        const fences = [];
+
+        // Create flower positions (avoiding edges and trees)
+        const flowerPositions = [
+            {x: 180, y: 120}, {x: 380, y: 140}, {x: 480, y: 180},
+            {x: 140, y: 200}, {x: 280, y: 220}, {x: 420, y: 260},
+            {x: 200, y: 320}, {x: 340, y: 340}, {x: 460, y: 360},
+            {x: 260, y: 400}
+        ];
+
+        flowerPositions.forEach((pos, i) => {
             flowers.push({
-                x: 80 + (i % 5) * 120 + (Math.random() - 0.5) * 60,
-                y: 100 + Math.floor(i / 5) * 140 + (Math.random() - 0.5) * 40,
+                x: pos.x,
+                y: pos.y,
                 collected: false,
-                opacity: 1
+                type: i % 4,
+                bobOffset: Math.random() * Math.PI * 2
             });
+        });
+
+        // Create fence
+        for (let x = 20; x < canvas.width - 20; x += 32) {
+            fences.push({x: x, y: 440});
         }
 
         const keys = {};
         window.addEventListener('keydown', (e) => keys[e.key] = true);
         window.addEventListener('keyup', (e) => keys[e.key] = false);
 
-        function drawPlayer() {
-            // Simple circle
-            ctx.beginPath();
-            ctx.arc(player.x, player.y, 8, 0, Math.PI * 2);
-            ctx.fillStyle = '#78716c';
-            ctx.fill();
+        function drawGrass() {
+            // Base grass
+            ctx.fillStyle = '#7ec850';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grass texture
+            ctx.fillStyle = '#6ab844';
+            for (let i = 0; i < 200; i++) {
+                const x = (i * 97) % canvas.width;
+                const y = (i * 53) % canvas.height;
+                ctx.fillRect(x, y, 4, 4);
+            }
+
+            // Dirt path
+            ctx.fillStyle = '#c4a66a';
+            ctx.fillRect(300, 350, 80, 130);
+            ctx.fillRect(280, 420, 120, 60);
+
+            ctx.fillStyle = '#b89658';
+            for (let i = 0; i < 20; i++) {
+                ctx.fillRect(305 + (i * 13) % 70, 360 + (i * 17) % 100, 3, 3);
+            }
         }
 
-        function drawFlower(flower) {
-            if (flower.collected && flower.opacity <= 0) return;
+        function drawTree(tree) {
+            // Trunk
+            ctx.fillStyle = '#8b6914';
+            ctx.fillRect(tree.x - 8, tree.y + 20, 16, 24);
+            ctx.fillStyle = '#725510';
+            ctx.fillRect(tree.x - 8, tree.y + 20, 4, 24);
 
-            ctx.globalAlpha = flower.opacity;
+            // Leaves layers
+            ctx.fillStyle = '#2d8a2d';
+            ctx.fillRect(tree.x - 28, tree.y, 56, 28);
+            ctx.fillStyle = '#3ca83c';
+            ctx.fillRect(tree.x - 24, tree.y - 12, 48, 20);
+            ctx.fillStyle = '#4bc44b';
+            ctx.fillRect(tree.x - 16, tree.y - 20, 32, 16);
+        }
 
-            // Simple, minimal flower - just a small circle with a line
-            ctx.beginPath();
-            ctx.arc(flower.x, flower.y, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#e7c4bc';
-            ctx.fill();
+        function drawFence(fence) {
+            ctx.fillStyle = '#c4a060';
+            ctx.fillRect(fence.x, fence.y, 28, 4);
+            ctx.fillRect(fence.x + 4, fence.y - 16, 4, 20);
+            ctx.fillRect(fence.x + 20, fence.y - 16, 4, 20);
 
-            // Tiny stem
-            ctx.beginPath();
-            ctx.moveTo(flower.x, flower.y + 4);
-            ctx.lineTo(flower.x, flower.y + 12);
-            ctx.strokeStyle = '#c7c2bd';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            ctx.fillStyle = '#a08040';
+            ctx.fillRect(fence.x + 4, fence.y - 16, 4, 4);
+            ctx.fillRect(fence.x + 20, fence.y - 16, 4, 4);
+        }
 
-            ctx.globalAlpha = 1;
+        function drawFlower(flower, time) {
+            if (flower.collected) return;
+
+            const bob = Math.sin(time / 500 + flower.bobOffset) * 2;
+            const y = flower.y + bob;
+
+            // Stem
+            ctx.fillStyle = '#3d8c40';
+            ctx.fillRect(flower.x - 1, y + 6, 3, 10);
+
+            // Leaf
+            ctx.fillStyle = '#4aa84d';
+            ctx.fillRect(flower.x + 2, y + 8, 4, 3);
+
+            const colors = [
+                {petal: '#ff6b8a', center: '#ffdb58'}, // Pink
+                {petal: '#ffd700', center: '#ff8c00'}, // Yellow
+                {petal: '#da70d6', center: '#ffb6c1'}, // Purple
+                {petal: '#87ceeb', center: '#fff8dc'}  // Blue
+            ];
+            const c = colors[flower.type];
+
+            // Petals
+            ctx.fillStyle = c.petal;
+            ctx.fillRect(flower.x - 6, y - 2, 5, 5);
+            ctx.fillRect(flower.x + 2, y - 2, 5, 5);
+            ctx.fillRect(flower.x - 2, y - 6, 5, 5);
+            ctx.fillRect(flower.x - 2, y + 2, 5, 5);
+
+            // Center
+            ctx.fillStyle = c.center;
+            ctx.fillRect(flower.x - 2, y - 2, 5, 5);
+        }
+
+        function drawPlayer(time) {
+            const bounce = player.moving ? Math.sin(time / 80) * 2 : 0;
+            const y = player.y + bounce;
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(player.x - 10, player.y + 14, 20, 6);
+
+            // Body (dress)
+            ctx.fillStyle = '#e86a92';
+            ctx.fillRect(player.x - 8, y, 16, 14);
+
+            // Dress detail
+            ctx.fillStyle = '#d45a82';
+            ctx.fillRect(player.x - 8, y + 10, 16, 4);
+
+            // Head
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(player.x - 6, y - 10, 12, 12);
+
+            // Hair (grey curls for nonna)
+            ctx.fillStyle = '#c0c0c0';
+            ctx.fillRect(player.x - 7, y - 12, 14, 6);
+            ctx.fillRect(player.x - 8, y - 10, 4, 8);
+            ctx.fillRect(player.x + 4, y - 10, 4, 8);
+
+            // Eyes
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillRect(player.x - 4, y - 6, 2, 3);
+            ctx.fillRect(player.x + 2, y - 6, 2, 3);
+
+            // Smile
+            ctx.fillStyle = '#d45a82';
+            ctx.fillRect(player.x - 2, y - 2, 4, 2);
+
+            // Arms
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(player.x - 12, y + 2, 4, 8);
+            ctx.fillRect(player.x + 8, y + 2, 4, 8);
         }
 
         function update() {
-            if (keys['ArrowUp'] || keys['w']) player.y = Math.max(30, player.y - player.speed);
-            if (keys['ArrowDown'] || keys['s']) player.y = Math.min(canvas.height - 30, player.y + player.speed);
-            if (keys['ArrowLeft'] || keys['a']) player.x = Math.max(30, player.x - player.speed);
-            if (keys['ArrowRight'] || keys['d']) player.x = Math.min(canvas.width - 30, player.x + player.speed);
+            player.moving = false;
 
-            flowers.forEach(flower => {
-                if (flower.collected) {
-                    flower.opacity = Math.max(0, flower.opacity - 0.05);
-                    return;
-                }
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+                player.y = Math.max(50, player.y - player.speed);
+                player.direction = 3;
+                player.moving = true;
+            }
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                player.y = Math.min(420, player.y - player.speed + player.speed);
+                player.y = Math.min(420, player.y + player.speed);
+                player.direction = 0;
+                player.moving = true;
+            }
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                player.x = Math.max(40, player.x - player.speed);
+                player.direction = 1;
+                player.moving = true;
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                player.x = Math.min(canvas.width - 40, player.x + player.speed);
+                player.direction = 2;
+                player.moving = true;
+            }
 
-                const dx = player.x - flower.x;
-                const dy = player.y - flower.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+            flowers.forEach((flower, index) => {
+                if (!flower.collected) {
+                    const dx = player.x - flower.x;
+                    const dy = player.y - flower.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
-                if (distance < 16) {
-                    flower.collected = true;
-                    flowersCollected++;
-                    scoreDisplay.textContent = `${flowersCollected} · ${totalFlowers}`;
+                    if (distance < 20) {
+                        flower.collected = true;
+                        flowersCollected++;
+                        document.getElementById(`slot-${index}`).classList.add('collected');
 
-                    if (flowersCollected === totalFlowers) {
-                        setTimeout(() => {
-                            finalMessage.style.display = 'block';
-                        }, 800);
+                        if (flowersCollected === totalFlowers) {
+                            setTimeout(() => {
+                                finalMessage.style.display = 'block';
+                            }, 600);
+                        }
                     }
                 }
             });
         }
 
-        function draw() {
-            ctx.fillStyle = '#f5f3ef';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function draw(time) {
+            drawGrass();
 
-            flowers.forEach(drawFlower);
-            drawPlayer();
+            // Draw trees behind player
+            trees.forEach(tree => {
+                if (tree.y < player.y) drawTree(tree);
+            });
+
+            flowers.forEach(f => drawFlower(f, time));
+            fences.forEach(drawFence);
+            drawPlayer(time);
+
+            // Draw trees in front of player
+            trees.forEach(tree => {
+                if (tree.y >= player.y) drawTree(tree);
+            });
         }
 
-        function gameLoop() {
+        function gameLoop(time) {
             update();
-            draw();
+            draw(time);
             requestAnimationFrame(gameLoop);
         }
 
-        gameLoop();
+        gameLoop(0);
     </script>
 </body>
 </html>
