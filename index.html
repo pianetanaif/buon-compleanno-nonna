@@ -186,16 +186,16 @@
         /* Blow button */
         #blowBtn {
             display: none;
-            position: fixed;
-            bottom: 40px;
+            position: absolute;
+            bottom: 20px;
             right: 20px;
-            width: 80px;
-            height: 80px;
+            width: 90px;
+            height: 90px;
             background: linear-gradient(180deg, #ff9966 0%, #ff6633 100%);
             border: 4px solid #cc4400;
             border-radius: 50%;
             font-family: 'Courier New', monospace;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
             color: #fff;
             cursor: pointer;
@@ -452,10 +452,9 @@
         <div class="dpad-btn" id="dpad-down">↓</div>
         <div class="dpad-btn" id="dpad-left">←</div>
         <div class="dpad-btn" id="dpad-right">→</div>
+        <!-- Blow Button -->
+        <button id="blowBtn">💨<br>SOFFIA!</button>
     </div>
-
-    <!-- Blow Button -->
-    <button id="blowBtn">💨<br>SOFFIA!</button>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
