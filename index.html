@@ -1590,10 +1590,9 @@
                     }
                 });
 
-                const isMobile = window.matchMedia("(pointer: coarse)").matches;
                 if (nearCandle) {
                     blowHint.style.display = 'block';
-                    if (isMobile) blowBtn.style.display = 'block';
+                    blowBtn.style.display = 'block';
                 } else {
                     blowHint.style.display = 'none';
                     blowBtn.style.display = 'none';
