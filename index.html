@@ -1574,7 +1574,9 @@
                         child.moving = true;
                     }
                 });
-            } else if (gamePhase === 'candles') {
+            }
+
+            if (gamePhase === 'candles') {
                 nearCandle = null;
                 candles.forEach((candle) => {
                     if (!candle.collected && !candle.blowingOut) {
