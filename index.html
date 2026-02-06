@@ -627,6 +627,28 @@
             {x: 650, y: 350}, {x: 400, y: 80}
         ];
 
+        // Children (nipotini) - appear from behind trees as flowers are collected
+        const children = [
+            {
+                x: 80, y: 100, // starts behind first tree
+                targetX: 80, targetY: 100,
+                visible: false,
+                appearAtFlower: 3, // appears after 3 flowers collected
+                speed: 3,
+                moving: false,
+                offset: 0 // for staggered following
+            },
+            {
+                x: 700, y: 120, // starts behind second tree
+                targetX: 700, targetY: 120,
+                visible: false,
+                appearAtFlower: 6, // appears after 6 flowers collected
+                speed: 3,
+                moving: false,
+                offset: 20 // staggered behind the first child
+            }
+        ];
+
         const fences = [];
         for (let x = 20; x < canvas.width - 20; x += 32) {
             fences.push({x: x, y: 560});
@@ -1285,6 +1307,54 @@
             }
         }
 
+        function drawChild(child, index, time) {
+            if (!child.visible) return;
+
+            const bounce = child.moving ? Math.sin(time / 80 + index * 50) * 2 : 0;
+            const y = child.y + bounce;
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(child.x - 7, child.y + 10, 14, 4);
+
+            // Body (smaller than nonna) - blue shirt for boy, green for girl
+            const shirtColor = index === 0 ? '#6ba3d6' : '#7ec850';
+            const shirtDark = index === 0 ? '#5a8fc0' : '#6ab844';
+            ctx.fillStyle = shirtColor;
+            ctx.fillRect(child.x - 6, y, 12, 10);
+            ctx.fillStyle = shirtDark;
+            ctx.fillRect(child.x - 6, y + 7, 12, 3);
+
+            // Head (smaller)
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(child.x - 5, y - 8, 10, 10);
+
+            // Blonde hair
+            ctx.fillStyle = '#e8c060';
+            ctx.fillRect(child.x - 6, y - 10, 12, 5);
+            ctx.fillRect(child.x - 6, y - 8, 3, 7);
+            ctx.fillRect(child.x + 3, y - 8, 3, 7);
+
+            // Eyes
+            ctx.fillStyle = '#4a4a4a';
+            ctx.fillRect(child.x - 3, y - 5, 2, 2);
+            ctx.fillRect(child.x + 1, y - 5, 2, 2);
+
+            // Smile
+            ctx.fillStyle = '#d45a82';
+            ctx.fillRect(child.x - 2, y - 1, 4, 1);
+
+            // Arms
+            ctx.fillStyle = '#ffd5c8';
+            ctx.fillRect(child.x - 9, y + 1, 3, 6);
+            ctx.fillRect(child.x + 6, y + 1, 3, 6);
+
+            // Legs
+            ctx.fillStyle = '#5c4a3d';
+            ctx.fillRect(child.x - 4, y + 10, 3, 5);
+            ctx.fillRect(child.x + 1, y + 10, 3, 5);
+        }
+
         function drawPlayer(time) {
             const bounce = player.moving ? Math.sin(time / 80) * 2 : 0;
             const y = player.y + bounce;
@@ -1344,6 +1414,11 @@
                 createSlots(8, true);
                 player.x = 400;
                 player.y = 500;
+                // Reset children positions for candle phase
+                children[0].x = 340;
+                children[0].y = 520;
+                children[1].x = 320;
+                children[1].y = 530;
                 initMicrophone();
             } else if (gamePhase === 'candles') {
                 gamePhase = 'video';
@@ -1449,6 +1524,13 @@
                             collected++;
                             document.getElementById(`slot-${index}`).classList.add('collected');
 
+                            // Check if children should appear
+                            children.forEach(child => {
+                                if (!child.visible && collected >= child.appearAtFlower) {
+                                    child.visible = true;
+                                }
+                            });
+
                             if (collected === totalItems) {
                                 setTimeout(() => {
                                     showPhaseMessage(
@@ -1459,6 +1541,37 @@
                                 }, 400);
                             }
                         }
+                    }
+                });
+            }
+
+            // Update children following logic (both in flowers and candles phase)
+            if (gamePhase === 'flowers' || gamePhase === 'candles') {
+                children.forEach((child, index) => {
+                    if (!child.visible) return;
+
+                    // Calculate target position (behind the player or behind other child)
+                    let targetX, targetY;
+                    if (index === 0) {
+                        // First child follows player directly
+                        targetX = player.x - 30;
+                        targetY = player.y + 15;
+                    } else {
+                        // Second child follows first child
+                        targetX = children[0].x - 25;
+                        targetY = children[0].y + 10;
+                    }
+
+                    // Move towards target
+                    const dx = targetX - child.x;
+                    const dy = targetY - child.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    child.moving = false;
+                    if (distance > 20 + child.offset) {
+                        child.x += (dx / distance) * child.speed;
+                        child.y += (dy / distance) * child.speed;
+                        child.moving = true;
                     }
                 });
             } else if (gamePhase === 'candles') {
@@ -1507,7 +1620,20 @@
             }
 
             fences.forEach(drawFence);
-            drawPlayer(time);
+
+            // Draw children behind player (sorted by Y position for proper layering)
+            const allCharacters = [
+                { type: 'player', y: player.y },
+                ...children.filter(c => c.visible).map((c, i) => ({ type: 'child', index: i, y: c.y }))
+            ].sort((a, b) => a.y - b.y);
+
+            allCharacters.forEach(char => {
+                if (char.type === 'player') {
+                    drawPlayer(time);
+                } else {
+                    drawChild(children[char.index], char.index, time);
+                }
+            });
 
             trees.forEach(tree => {
                 if (tree.y >= player.y) drawTree(tree);
